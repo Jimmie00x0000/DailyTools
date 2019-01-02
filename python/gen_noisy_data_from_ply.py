@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from plyfile import PlyData, PlyElement
+from random import *
 
 
 def _gen_noise(noise_range):
@@ -44,11 +45,20 @@ def _gen_noisy_data(vertex_data, face_data):
 
 
 # 采样分辨率，越小，点云越密
-_RESOLUTION = 0.05
+_RESOLUTION = 0.0005
+# _RESOLUTION = 0.005
 
 
 def length_of_vector(triple):
     return math.sqrt(triple[0] * triple[0] + triple[1] * triple[1] + triple[2] * triple[2])
+
+
+# 计算向量叉积
+def cross(v1, v2):
+    return (
+        v1[1] * v2[2] - v1[2] * v2[1],
+        v1[2] * v2[0] - v1[0] * v2[2],
+        v1[0] * v2[1] - v1[1] * v2[0])
 
 
 def _gen_noisy_face(vertex_data, face_vert_indices):
@@ -65,22 +75,24 @@ def _gen_noisy_face(vertex_data, face_vert_indices):
     ab = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
     ac = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
     # 三角形参数方程：p = OA + u·AB + v·AC, u + v <= 1
-    u_n = int(length_of_vector(ab) / _RESOLUTION)
-    v_n = int(length_of_vector(ac) / _RESOLUTION)
-    for u_i in range(u_n):
-        for v_i in range(v_n):
-            u = u_i * 1.0 / u_n
-            v = v_i * 1.0 / v_n
-            if u + v > 1:
-                continue
-            noise = _gen_noise(_RESOLUTION * 0.25)
-            point = (
-                a[0] + ab[0] * u + ac[0] * v + noise[0],
-                a[1] + ab[1] * u + ac[1] * v + noise[1],
-                a[2] + ab[2] * u + ac[2] * v + noise[2]
-            )
-            points.append(point)
-            pass
+    num = int(length_of_vector(cross(ab, ac)) * 0.5 / _RESOLUTION)
+    r = Random()
+    count = 0
+    while count < num:
+        u = r.random()
+        v = r.random()
+        if u + v > 1:
+            continue
+        pass
+        noise = _gen_noise(_RESOLUTION * 0.25)
+        point = (
+            a[0] + ab[0] * u + ac[0] * v + noise[0],
+            a[1] + ab[1] * u + ac[1] * v + noise[1],
+            a[2] + ab[2] * u + ac[2] * v + noise[2]
+        )
+        points.append(point)
+        count += 1
+        pass
     return points
 
 
@@ -89,6 +101,7 @@ def _write_ply(point_cloud, file_name):
     vertex_ele = PlyElement.describe(pc_np_array, 'vertex')
     PlyData([vertex_ele], text=True).write(file_name)
     pass
+
 
 
 if __name__ == '__main__':
